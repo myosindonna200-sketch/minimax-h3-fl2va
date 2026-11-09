@@ -2,13 +2,12 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: bash %s [--check-only] INFINILM_REPO MODEL_PATH OUTPUT_DIR\n' "$0" >&2
+  printf 'Usage: bash %s [--check-only | --generate-only] INFINILM_REPO MODEL_PATH OUTPUT_DIR\n' "$0" >&2
   exit 2
 }
 
-check_only=false
-if [[ ${1:-} == --check-only ]]; then
-  check_only=true
+mode=${1:-}
+if [[ $mode == --check-only || $mode == --generate-only ]]; then
   shift
 fi
 [[ $# == 3 ]] || usage
@@ -83,17 +82,22 @@ PY
   printf 'FL2VA environment checks completed.\n'
 } 2>&1 | tee "$output_dir/environment.log"
 
-if "$check_only"; then
+if [[ $mode == --check-only ]]; then
   exit 0
 fi
 
 video="$output_dir/infinilm_fl2va.mp4"
-"$python_bin" "$generator" fl2va \
+H3_LATENT_CHECKPOINT="$output_dir/denoised_latents.pt" "$python_bin" "$generator" fl2va \
   --model-path="$model_dir" --first-frame="$first_frame" \
   --text='A dog falls asleep' --gpus="$expected_gpus" \
   --seed=42 --num-frames=124 --steps=50 --output="$video" \
   2>&1 | tee "$output_dir/infinilm_fl2va.log"
 [[ -s "$video" ]] || die 'InfiniLM did not produce a nonempty video.'
+printf 'VIDEO_SAVED=%s\n' "$video"
+
+if [[ $mode == --generate-only ]]; then
+  exit 0
+fi
 
 compare_args=(--tasks=fl2va --model-path="$model_dir" --first-frame="$first_frame"
   --output-dir="$output_dir" --infinilm-fl2va-video="$video"
