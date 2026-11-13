@@ -56,7 +56,7 @@ bash reproduce_fl2va.sh review01 prepare "$MODEL_DIR"
 
 ## 批处理入口
 
-选择 `reproduce_fl2va.sh` 作为八卡批作业入口。按以下顺序分别提交，每份作业时限 1800 秒。程序参数只填写脚本名后的内容，例如 `review01 core`。同一轮使用同一个自选运行编号，重做整轮时换一个编号。日志出现 `STAGE_COMPLETE=` 后再提交下一阶段。参考视频分段续跑时会显示 `REFERENCE_RESUBMIT_SAME_ARGS`，此时重复提交 `review01 compare`，直到显示 `STAGE_COMPLETE=compare`。
+选择 `reproduce_fl2va.sh` 作为批作业入口。按以下顺序分别提交，每份作业时限 1800 秒。`core`、`lm` 和 `softmax` 使用 `scnet-dcu` 的 `gfx936` 环境，可申请 2 卡。`softmax` 的算子验证在第 0 张卡上运行。`generate` 和 `compare` 申请单节点 8 卡，`decode` 使用第 0 张卡。程序参数只填写脚本名后的内容，例如 `review01 core`。同一轮使用同一个自选运行编号，重做整轮时换一个编号。日志出现 `STAGE_COMPLETE=` 后再提交下一阶段。参考视频分段续跑时会显示 `REFERENCE_RESUBMIT_SAME_ARGS`，此时重复提交 `review01 compare`，直到显示 `STAGE_COMPLETE=compare`。
 
 ```bash
 bash reproduce_fl2va.sh review01 core
