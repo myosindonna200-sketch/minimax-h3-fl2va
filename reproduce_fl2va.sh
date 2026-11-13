@@ -67,8 +67,24 @@ PY
   fi
   test -s first_frame.png
   (cd "$afs" && sha256sum -c "$project/offline/SHA256SUMS")
-  tar -xzf "$afs/minimax-h3-offline-bootstrap.tar.gz" -C "$afs"
-  (cd "$afs/h3-offline-bootstrap" && sha256sum -c SHA256SUMS)
+  bootstrap_archive="$afs/minimax-h3-offline-bootstrap.tar.gz"
+  bootstrap_dir="$afs/h3-offline-bootstrap"
+  if [[ ! -d "$bootstrap_dir" ]]; then
+    (
+      staging=$(mktemp -d "$afs/.h3-bootstrap.XXXXXX")
+      trap 'rm -rf -- "$staging"' EXIT
+      tar -xmzf "$bootstrap_archive" -C "$staging"
+      (cd "$staging/h3-offline-bootstrap" && sha256sum -c SHA256SUMS)
+      python -c 'import os, sys; os.rename(sys.argv[1], sys.argv[2])' \
+        "$staging/h3-offline-bootstrap" "$bootstrap_dir"
+    )
+  else
+    echo 'Checking existing h3-offline-bootstrap in personal AFS'
+    if ! tar -xOzf "$bootstrap_archive" h3-offline-bootstrap/SHA256SUMS |
+      (cd "$bootstrap_dir" && sha256sum -c -); then
+      fail "Existing bootstrap failed verification: $bootstrap_dir"
+    fi
+  fi
   if [[ $# == 3 ]]; then save model-dir "$model_dir"; fi
   save prepare OK
   echo 'STAGE_COMPLETE=prepare'
