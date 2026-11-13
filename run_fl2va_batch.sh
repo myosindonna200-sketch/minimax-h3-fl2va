@@ -44,7 +44,7 @@ fi
 deps_archive_one="$IFAB_AFS_HOME/h3-fl2va-wheels-part1.tar.gz"
 deps_archive_two="$IFAB_AFS_HOME/h3-fl2va-wheels-part2.tar.gz"
 compat_archive="$IFAB_AFS_HOME/h3-fl2va-compat.tar.gz"
-model_dir=${MINIMAX_H3_MODEL_DIR:-/public/home/aclsylqidf/shared/MiniMax-H3/diffusers}
+model_dir=/public/home/aclsylqidf/shared/MiniMax-H3/diffusers
 
 for path in "$run_input" "$deps_archive_one" "$deps_archive_two" "$compat_archive" "$model_dir/model_index.json"; do
   if [[ ! -r $path ]]; then

@@ -1,9 +1,0 @@
-infinicore.use_ntops=False
-[model] InfiniLM TP devices: [0, 1, 2, 3, 4, 5, 6, 7]
-  text:            A dog falls asleep
-  first frame:     True
-  last frame:      False
-  frames:          124
-  steps:           50
-  backend:         InfiniLM
-VAE_INPUT_CHECKPOINT=$IFAB_AFS_HOME/minimax-h3-work/results/fl2va-XWBoHy/denoised_latents.pt

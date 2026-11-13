@@ -27,7 +27,7 @@ printf 'LOG=%s\n' "$log"
 
 {
   printf 'BUILD_DIR=%s\n' "$scratch"
-  printf 'BUILD_SCRIPT=20261113-v5\nBUILD_STAGE=%s\n' "$stage"
+  printf 'BUILD_SCRIPT=20261109-v4\nBUILD_STAGE=%s\n' "$stage"
   mkdir "$scratch/tmp"
   export TMPDIR="$scratch/tmp"
   export DTK_ROOT=/opt/dtk
@@ -48,20 +48,7 @@ printf 'LOG=%s\n' "$log"
   torch_lib=$(python -c 'import torch; from pathlib import Path; print(Path(torch.__file__).parent / "lib")')
   export LD_LIBRARY_PATH="$torch_lib:$LD_LIBRARY_PATH"
   printf 'TORCH_ABI=%s\n' "$INFINILM_CXX11_ABI"
-  python - "$HYGON_ARCH" <<'PY_DEVICE_CHECK'
-import sys
-
-import torch
-
-expected_arch = sys.argv[1]
-count = torch.cuda.device_count()
-if not torch.version.hip or count < 1:
-    raise SystemExit(f'Expected a HIP device for {expected_arch}; found {count} visible devices')
-arch = getattr(torch.cuda.get_device_properties(0), 'gcnArchName', '')
-print(f'PyTorch={torch.__version__} HIP={torch.version.hip} DCU_COUNT={count} DCU_ARCH={arch}')
-if arch.split(':', 1)[0] != expected_arch:
-    raise SystemExit(f'Expected {expected_arch} on device 0; found {arch or "unknown"}')
-PY_DEVICE_CHECK
+  python -c 'import torch; n=torch.cuda.device_count(); p=torch.cuda.get_device_properties(0); print(torch.__version__, torch.version.hip, n, p.gcnArchName); assert n == 8 and p.gcnArchName.split(":")[0] == "gfx936"'
 
   mkdir "$scratch/bin"
   install -m 755 "$bundle/xmake-bundle-v3.0.5.linux.x86_64" "$scratch/bin/xmake"
