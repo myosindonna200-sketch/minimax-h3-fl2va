@@ -1,0 +1,3 @@
+Size:         PASS (PyTorch 768x928, InfiniLM 768x928)
+    Length:       PASS (PyTorch 124 frames, InfiniLM 124 frames)
+    Average SSIM: 5.403%

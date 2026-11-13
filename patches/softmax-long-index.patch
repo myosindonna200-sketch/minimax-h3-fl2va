@@ -1,0 +1,41 @@
+diff --git a/src/infiniop/ops/softmax/cuda/kernel.cuh b/src/infiniop/ops/softmax/cuda/kernel.cuh
+--- a/src/infiniop/ops/softmax/cuda/kernel.cuh
++++ b/src/infiniop/ops/softmax/cuda/kernel.cuh
+@@ -22,13 +22,14 @@
+     T const *input, T *output, size_t dimsize,
+     ptrdiff_t stride) {
+ 
+-    int tid = blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) * dimsize; // now, tid = i(JKS) + k(S) + s;
++    const size_t row = blockIdx.x;
++    const size_t tid = row % stride + (row - row % stride) * dimsize; // now, tid = i(JKS) + k(S) + s;
+ 
+     DataMaxSum dms_partial;
+     dms_partial.max_tmp = -__FLT_MAX__;
+     dms_partial.sum_tmp = 0.0f;
+     DataMaxSum dms_input;
+-    for (int ind = threadIdx.x; ind < dimsize; ind += BLOCK_SIZE) {
++    for (size_t ind = threadIdx.x; ind < dimsize; ind += BLOCK_SIZE) {
+         dms_input.max_tmp = static_cast<float>(input[tid + ind * stride]);
+ 
+         dms_input.sum_tmp = 1.0f;
+@@ -46,7 +47,7 @@
+     __syncthreads();
+     float inv = __fdividef(1.0F, dms_total.sum_tmp);
+ 
+-    for (int ind = threadIdx.x; ind < dimsize; ind += BLOCK_SIZE) {
++    for (size_t ind = threadIdx.x; ind < dimsize; ind += BLOCK_SIZE) {
+         output[tid + ind * stride] = static_cast<T>(
+             __expf(static_cast<float>(
+                        input[tid + ind * stride])
+@@ -80,9 +81,9 @@
+ template <typename T, unsigned int BLOCK_SIZE_x, unsigned int BLOCK_SIZE_y, int numPerThreadx>
+ __device__ void warpSoftmaxKernel(T const *input, T *output,
+                                   size_t othersize, size_t dimsize, ptrdiff_t stride) {
+-    int otherIdx = blockIdx.x * blockDim.y + threadIdx.y;
++    const size_t otherIdx = static_cast<size_t>(blockIdx.x) * blockDim.y + threadIdx.y;
+ 
+-    int tid = otherIdx % stride + (otherIdx - otherIdx % stride) * dimsize;
++    const size_t tid = otherIdx % stride + (otherIdx - otherIdx % stride) * dimsize;
+     float dataPerThreadx[numPerThreadx];
+     if (otherIdx < othersize) {
+ 

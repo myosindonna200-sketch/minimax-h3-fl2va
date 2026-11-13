@@ -2,15 +2,17 @@
 set -euo pipefail
 
 usage() {
-  echo 'Usage: bash reproduce_fl2va.sh RUN_ID prepare|core|lm|softmax|generate|decode|compare' >&2
+  echo 'Usage: bash reproduce_fl2va.sh RUN_ID prepare [ABSOLUTE_MODEL_DIR]' >&2
+  echo '       bash reproduce_fl2va.sh RUN_ID core|lm|softmax|generate|decode|compare' >&2
   exit 2
 }
 
-[[ $# == 2 && $1 =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || usage
+[[ $# -ge 2 && $1 =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || usage
 run_id=$1
 stage=$2
 case "$stage" in
-  prepare|core|lm|softmax|generate|decode|compare) ;;
+  prepare) [[ $# == 2 || ( $# == 3 && $3 == /* ) ]] || usage ;;
+  core|lm|softmax|generate|decode|compare) [[ $# == 2 ]] || usage ;;
   *) usage ;;
 esac
 
@@ -46,13 +48,36 @@ if [[ -s "$run/$stage" ]]; then
 fi
 
 if [[ $stage == prepare ]]; then
+  if [[ $# == 3 ]]; then
+    model_dir=$3
+    python - "$model_dir" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+with (root / 'model_index.json').open() as index:
+    if json.load(index).get('_class_name') != 'MiniMaxH3ModularPipeline':
+        raise SystemExit(f'Expected MiniMax-H3 Diffusers weights under {root}')
+for component in ('processor', 'tokenizer', 'text_encoder', 'transformer', 'vae',
+                  'audio_vae', 'scheduler', 'audio_scheduler'):
+    if not (root / component).is_dir():
+        raise SystemExit(f'Missing MiniMax-H3 Diffusers component: {root / component}')
+PY
+  fi
   test -s first_frame.png
   (cd "$afs" && sha256sum -c "$project/offline/SHA256SUMS")
   tar -xzf "$afs/minimax-h3-offline-bootstrap.tar.gz" -C "$afs"
   (cd "$afs/h3-offline-bootstrap" && sha256sum -c SHA256SUMS)
+  if [[ $# == 3 ]]; then save model-dir "$model_dir"; fi
   save prepare OK
   echo 'STAGE_COMPLETE=prepare'
   exit 0
+fi
+
+if [[ -s "$run/model-dir" ]]; then
+  MINIMAX_H3_MODEL_DIR=$(value model-dir)
+  export MINIMAX_H3_MODEL_DIR
 fi
 
 case "$stage" in

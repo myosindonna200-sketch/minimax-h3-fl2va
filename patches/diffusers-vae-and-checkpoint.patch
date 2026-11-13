@@ -1,0 +1,41 @@
+diff --git a/diffusers/models/autoencoders/autoencoder_kl_minimax_h3.py b/diffusers/models/autoencoders/autoencoder_kl_minimax_h3.py
+--- a/diffusers/models/autoencoders/autoencoder_kl_minimax_h3.py
++++ b/diffusers/models/autoencoders/autoencoder_kl_minimax_h3.py
+@@ -333,7 +333,7 @@
+             key,
+             value,
+             attn_mask=None,
+-            backend=self._attention_backend,
++            backend=self._attention_backend or "_native_math",
+             parallel_config=self._parallel_config,
+         )
+         hidden_states = hidden_states.flatten(2, 3)
+diff --git a/diffusers/modular_pipelines/minimax_h3/decoders.py b/diffusers/modular_pipelines/minimax_h3/decoders.py
+--- a/diffusers/modular_pipelines/minimax_h3/decoders.py
++++ b/diffusers/modular_pipelines/minimax_h3/decoders.py
+@@ -12,6 +12,8 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
++import os
++
+ import torch
+ 
+ from ...configuration_utils import FrozenDict
+@@ -123,6 +125,16 @@
+         audio_rows = audio_rows.reshape(components.audio_channels, block_state.num_audio_latents, audio_rows.shape[-1])
+         block_state.audio_latents = audio_rows.permute(0, 2, 1).contiguous()
+ 
++        checkpoint_path = os.environ.get("H3_LATENT_CHECKPOINT")
++        if checkpoint_path:
++            partial = checkpoint_path + ".partial"
++            torch.save({
++                "latents": block_state.latents.detach().cpu(),
++                "audio_latents": block_state.audio_latents.detach().cpu(),
++            }, partial)
++            os.replace(partial, checkpoint_path)
++            print(f"VAE_INPUT_CHECKPOINT={checkpoint_path}", flush=True)
++
+         self.set_block_state(state, block_state)
+         return components, state
+ 

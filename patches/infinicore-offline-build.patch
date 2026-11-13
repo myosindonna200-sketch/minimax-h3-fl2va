@@ -1,0 +1,43 @@
+diff --git a/xmake.lua b/xmake.lua
+--- a/xmake.lua
++++ b/xmake.lua
+@@ -1,6 +1,6 @@
+ add_rules("mode.debug", "mode.release")
+-add_requires("boost", {configs = {stacktrace = true}})
+-add_requires("pybind11")
++add_defines("_GLIBCXX_USE_CXX11_ABI=" .. os.getenv("INFINILM_CXX11_ABI"))
++
+ 
+ -- Define color codes
+ local GREEN = '\27[0;32m'
+@@ -855,7 +855,7 @@
+     -- pybind11/embed.h for mha_kvcache branch
+     if has_config("moore-gpu") and has_config("aten") and has_config("flash-attn") then
+         add_defines("ENABLE_MOORE_MATE_FLASH_ATTN")
+-        add_packages("pybind11")
++        add_includedirs(os.getenv("PYBIND11_INCLUDE"), os.getenv("PYTHON_INCLUDE"))
+     end
+ 
+     before_build(function (target)
+@@ -1086,7 +1086,7 @@
+ 
+     set_default(false)
+     add_rules("python.library", {soabi = true})
+-    add_packages("pybind11")
++    add_includedirs(os.getenv("PYBIND11_INCLUDE"), os.getenv("PYTHON_INCLUDE"))
+     set_languages("cxx17")
+ 
+     add_deps("infinicore_cpp_api")
+diff --git a/xmake/hygon.lua b/xmake/hygon.lua
+--- a/xmake/hygon.lua
++++ b/xmake/hygon.lua
+@@ -108,6 +108,9 @@
+     add_defines("INFINIOP_HYGON_GFX906")
+ end
+ target("infiniop-hygon")
++    if not has_config("omp") then
++        add_cxxflags("-Wno-unknown-pragmas", {force = true})
++    end
+     set_kind("static")
+     set_languages("cxx17")
+     add_deps("infini-utils")

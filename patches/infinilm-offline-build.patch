@@ -1,0 +1,18 @@
+diff --git a/xmake.lua b/xmake.lua
+--- a/xmake.lua
++++ b/xmake.lua
+@@ -1,4 +1,4 @@
+-add_requires("pybind11")
++
+ 
+ set_toolchains("gcc")
+ 
+@@ -22,7 +22,7 @@
+ add_includedirs("third_party/json/single_include/")
+ 
+ target("_infinilm")
+-    add_packages("pybind11")
++    add_includedirs(os.getenv("PYBIND11_INCLUDE"), os.getenv("PYTHON_INCLUDE"))
+     set_default(false)
+     add_rules("python.module", {soabi = true})
+     set_languages("cxx17")
