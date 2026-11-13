@@ -21,19 +21,23 @@ cd "$project"
 afs=${IFAB_AFS_HOME:?InfiniFabric personal storage is required}
 work="$afs/minimax-h3-work"
 run="$work/reproduce/$run_id"
-mkdir -p "$run"
+(umask 022; mkdir -p "$run")
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 value() {
   [[ -s "$run/$1" ]] || fail "Run the prerequisite stage first: $1"
+  [[ -r "$run/$1" ]] || fail "Cannot read stage state: $run/$1"
   cat "$run/$1"
 }
-save() {
-  local pending
-  pending=$(mktemp "$run/$1.XXXXXX")
-  printf '%s\n' "$2" > "$pending"
-  mv -f -- "$pending" "$run/$1"
-}
+save() (
+  local pending_dir
+  pending_dir=$(mktemp -d "$run/.$1.XXXXXX")
+  trap 'rm -rf -- "$pending_dir"' EXIT
+  # Login and batch jobs can read the same personal AFS as different users.
+  umask 022
+  printf '%s\n' "$2" > "$pending_dir/state"
+  mv -f -- "$pending_dir/state" "$run/$1"
+)
 last_value() {
   local output
   output=$(sed -n "s/^$1=//p" "$log" | tail -n 1)
@@ -42,8 +46,9 @@ last_value() {
 }
 
 if [[ -s "$run/$stage" ]]; then
+  saved_state=$(value "$stage")
   printf 'STAGE_COMPLETE=%s\n' "$stage"
-  cat "$run/$stage"
+  printf '%s\n' "$saved_state"
   exit 0
 fi
 
